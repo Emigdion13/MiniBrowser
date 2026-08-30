@@ -11,6 +11,7 @@
     origin: 'https://en.wikipedia.org',
     pinned: true,
     alwaysOnTop: false,
+    dragBar: true,
     opacity: 1,
     blockedCount: 7,
     adblockEnabled: true,
@@ -99,6 +100,10 @@
     resizeBar: async (h) => h,
     minimize: async () => true,
     fullscreen: async () => true,
+    dragBar: async (v) => {
+      state.dragBar = v === undefined ? !state.dragBar : Boolean(v);
+      push(); return state.dragBar;
+    },
     alwaysOnTop: async (v) => {
       state.alwaysOnTop = v === undefined ? !state.alwaysOnTop : Boolean(v);
       push(); return state.alwaysOnTop;

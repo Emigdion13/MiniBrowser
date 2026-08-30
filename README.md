@@ -16,7 +16,7 @@ Windows · macOS · Linux
 
 The page and the browser UI live in **two separate OS windows**.
 
-- **Content window** — *only* the webpage. Frameless: no title bar, no native menu, no buttons, no borders. The page is rendered edge to edge and nothing else exists in that window.
+- **Content window** — *only* the webpage. Frameless: no title bar, no native menu, no buttons, no borders. The page is rendered edge to edge. An **auto-hiding drag strip** lives at the top edge (see below) so the window is still movable.
 - **Control bar** — its own frameless, transparent, always-on-top window that floats over everything like a picture-in-picture player. It owns **every** menu, button and control in the application. Drag it anywhere, resize it, park it on a second monitor.
 
 Because the bar is a genuinely separate window with its own renderer process, a compromised page has **no DOM access to the address bar at all** — it cannot spoof the URL, fake the lock icon, or phish your input.
@@ -101,7 +101,7 @@ One click on **Clear all browsing data** wipes cookies, localStorage, IndexedDB,
 | **History** | Back, forward, home, plus current page + connection status |
 | **Ad Block** | On/off, cosmetic hiding, per-site allowlist, live counters, top blocked domains, filter-list subscriptions |
 | **Privacy** | Per-site grants (camera / mic / location / notifications), clear all data |
-| **Window** | **Always on top**, **transparency slider**, minimize, maximize, center, snap left/right/fill, "bar follows page window" toggle |
+| **Window** | **Always on top**, **top drag strip** toggle, **transparency slider**, minimize, maximize, center, snap left/right/fill, "bar follows page window" toggle |
 
 Window buttons (─ □ ✕) on the right control the **page** window and live here too.
 
@@ -110,6 +110,18 @@ Window buttons (─ □ ✕) on the right control the **page** window and live h
 **Row 3 — find in page**, opened with `Ctrl/Cmd+F`, with match counts and next/previous.
 
 The bar grows and shrinks automatically as menus and the find bar open.
+
+### Auto-hiding drag strip
+
+Because the page window is frameless there is nothing to grab to move it, so a thin strip lives at its top edge:
+
+- **Hidden by default.** The overlay is only **6px tall** while hidden, so the page keeps receiving essentially every pointer event.
+- **Move the pointer to the top edge** and it slides down, showing the page title plus minimize / maximize / close.
+- **Hides again 3 seconds** after the pointer leaves. It never hides mid-drag.
+- **Pin it** with the pin icon to keep it open permanently.
+- **Turn it off** entirely from *Window → Top drag strip*.
+
+It is a separate overlay view, so it floats above the page rather than reserving any layout space — the page is still rendered full-bleed underneath.
 
 ### Responsive
 

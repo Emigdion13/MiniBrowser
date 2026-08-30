@@ -33,6 +33,12 @@ const HOME_URL = 'about:blank';
 /** @type {BrowserWindow|null} */ let contentWindow = null;
 /** @type {BrowserWindow|null} */ let toolbarWindow = null;
 /** @type {WebContentsView|null} */ let pageView = null;
+/** @type {WebContentsView|null} */ let dragBarView = null;
+
+const DRAGBAR_HEIGHT = 34;   // full strip
+const DRAGBAR_HOTZONE = 6;   // invisible sliver while hidden
+let dragBarExpanded = false;
+let dragBarEnabled = true;
 
 let toolbarPinned = true;
 let lastBlocked = null;
@@ -103,6 +109,9 @@ function createContentWindow() {
   hardenWebContents(pageView.webContents, { onBlocked: reportBlocked });
 
   contentWindow.contentView.addChildView(pageView);
+
+  createDragBar();
+
   layoutPageView();
 
   contentWindow.on('resize', layoutPageView);
@@ -123,6 +132,7 @@ function createContentWindow() {
   contentWindow.on('closed', () => {
     contentWindow = null;
     pageView = null;
+    dragBarView = null;
     if (toolbarWindow && !toolbarWindow.isDestroyed()) toolbarWindow.close();
   });
 
@@ -136,9 +146,43 @@ function createContentWindow() {
 
 function layoutPageView() {
   if (!contentWindow || !pageView) return;
-  // The page fills the window edge to edge. Nothing is reserved for chrome.
+  // The page fills the window edge to edge. The drag strip floats over it as
+  // an overlay, so no space is ever reserved for chrome.
   const { width, height } = contentWindow.getContentBounds();
   pageView.setBounds({ x: 0, y: 0, width, height });
+  layoutDragBar();
+}
+
+function layoutDragBar() {
+  if (!contentWindow || !dragBarView) return;
+  const { width } = contentWindow.getContentBounds();
+  // Disabled: collapse to zero so the page owns every pixel.
+  const height = !dragBarEnabled ? 0 : dragBarExpanded ? DRAGBAR_HEIGHT : DRAGBAR_HOTZONE;
+  dragBarView.setBounds({ x: 0, y: 0, width, height });
+}
+
+function createDragBar() {
+  dragBarView = new WebContentsView({
+    webPreferences: {
+      preload: path.join(__dirname, '..', 'preload', 'dragbar-preload.js'),
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: false,
+      spellcheck: false,
+      devTools: false,
+      transparent: true
+    }
+  });
+
+  dragBarView.setBackgroundColor('#00000000');
+  hardenWebContents(dragBarView.webContents, { isPrivileged: true });
+
+  // Added after pageView, so it paints on top of the page.
+  contentWindow.contentView.addChildView(dragBarView);
+  dragBarView.webContents.loadFile(
+    path.join(__dirname, '..', 'renderer', 'dragbar', 'dragbar.html')
+  );
 }
 
 function wireContentEvents() {
@@ -154,6 +198,9 @@ function wireContentEvents() {
   wc.on('did-navigate-in-page', push);
   wc.on('page-title-updated', (_e, title) => {
     if (contentWindow) contentWindow.setTitle(title ? `${title} — MiniBrowser` : 'MiniBrowser');
+    if (dragBarView && !dragBarView.webContents.isDestroyed()) {
+      dragBarView.webContents.send('dragbar:title', title || 'MiniBrowser');
+    }
     push();
   });
   wc.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
@@ -271,6 +318,7 @@ function currentState() {
     origin: originOf(url),
     pinned: toolbarPinned,
     alwaysOnTop: contentAlwaysOnTop,
+    dragBar: dragBarEnabled,
     opacity: contentOpacity,
     blockedCount: adblock.countFor(originOf(url)),
     adblockEnabled: adblock.isEnabled(),
@@ -406,6 +454,12 @@ handle('win:toggle-maximize', () => {
   return contentWindow.isMaximized();
 });
 
+handle('win:dragbar', (value) => {
+  dragBarEnabled = value === undefined ? !dragBarEnabled : Boolean(value);
+  layoutDragBar();
+  return dragBarEnabled;
+});
+
 handle('win:always-on-top', (value) => {
   if (!contentWindow) return false;
   contentAlwaysOnTop = value === undefined ? !contentAlwaysOnTop : Boolean(value);
@@ -536,6 +590,31 @@ handle('shell:external', (url) => {
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
+
+function fromDragBar(event) {
+  return dragBarView && !dragBarView.webContents.isDestroyed()
+    && event.sender === dragBarView.webContents;
+}
+
+ipcMain.on('dragbar:expand', (event, value) => {
+  if (!fromDragBar(event)) return;
+  dragBarExpanded = Boolean(value);
+  layoutDragBar();
+});
+
+ipcMain.on('dragbar:minimize', (event) => {
+  if (fromDragBar(event)) contentWindow?.minimize();
+});
+
+ipcMain.on('dragbar:toggle-maximize', (event) => {
+  if (!fromDragBar(event) || !contentWindow) return;
+  if (contentWindow.isMaximized()) contentWindow.unmaximize();
+  else contentWindow.maximize();
+});
+
+ipcMain.on('dragbar:close', (event) => {
+  if (fromDragBar(event)) contentWindow?.close();
+});
 
 app.on('web-contents-created', (_event, contents) => {
   // Belt and braces: anything we did not explicitly create still gets locked down.

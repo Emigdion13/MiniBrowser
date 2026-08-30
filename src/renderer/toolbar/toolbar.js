@@ -209,6 +209,17 @@ const MENUS = {
         showToast(on ? 'Page window stays on top' : 'Page window behaves normally');
       }
     },
+    {
+      label: 'Top drag strip (auto-hides)',
+      type: 'check',
+      checked: state.dragBar !== false,
+      keep: true,
+      run: async () => {
+        const on = await window.mini.dragBar();
+        state.dragBar = on;
+        showToast(on ? 'Drag strip on \u2014 move the pointer to the top edge' : 'Drag strip off');
+      }
+    },
     { type: 'sep' },
     { type: 'head', label: 'Transparency' },
     { type: 'slider' },

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none';"
+    />
+    <title>Drag bar</title>
+    <link rel="stylesheet" href="dragbar.css" />
+  </head>
+  <body>
+    <!-- Thin invisible sliver that lives at the very top edge. Moving the
+         pointer into it reveals the full strip. -->
+    <div class="hotzone" id="hotzone"></div>
+
+    <div class="strip" id="strip">
+      <div class="drag-area" id="dragArea">
+        <span class="dots" aria-hidden="true">
+          <i></i><i></i><i></i>
+        </span>
+        <span class="title" id="title">MiniBrowser</span>
+      </div>
+
+      <div class="buttons">
+        <button class="wb" id="pin" title="Keep this bar visible" aria-label="Keep visible" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3v2H7v-2l3-3z" /></svg>
+        </button>
+        <button class="wb" id="min" title="Minimize" aria-label="Minimize">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14" /></svg>
+        </button>
+        <button class="wb" id="max" title="Maximize / restore" aria-label="Maximize">
+          <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+        </button>
+        <button class="wb danger" id="close" title="Close" aria-label="Close">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+    </div>
+
+    <script src="dragbar.js"></script>
+  </body>
+</html>

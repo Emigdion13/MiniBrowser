@@ -65,6 +65,7 @@ contextBridge.exposeInMainWorld('mini', {
   minimize: () => ipcRenderer.invoke('win:minimize'),
   fullscreen: () => ipcRenderer.invoke('win:fullscreen'),
   alwaysOnTop: (v) => ipcRenderer.invoke('win:always-on-top', v),
+  dragBar: (v) => ipcRenderer.invoke('win:dragbar', v),
   opacity: (v) => ipcRenderer.invoke('win:opacity', Number(v)),
   center: () => ipcRenderer.invoke('win:center'),
   moveBy: (dx, dy) => ipcRenderer.invoke('win:move-by', Number(dx), Number(dy)),

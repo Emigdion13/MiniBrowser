@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Auto-hiding drag strip — preview</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100vh; padding: 28px 16px;
+        display: flex; flex-direction: column; align-items: center; gap: 18px;
+        background: radial-gradient(1100px 700px at 20% 0%, #1d2436, #0a0c12 70%);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+        color: #cbd3e4;
+      }
+      h1 { font-size: 17px; font-weight: 600; margin: 0; color: #eef1f7; }
+      p.note { margin: 0; font-size: 13px; color: #8b94a8; text-align: center; max-width: 640px; line-height: 1.55; }
+      kbd {
+        background: rgba(127,145,190,.16); border: 1px solid rgba(255,255,255,.14);
+        border-radius: 5px; padding: 1px 6px; font-size: 11.5px; font-family: inherit;
+      }
+      .stage {
+        position: relative; width: 100%; max-width: 900px; height: 460px;
+        border-radius: 14px; overflow: hidden;
+        border: 1px solid rgba(255,255,255,.1);
+        background: #fff;
+      }
+      .fake-page { padding: 54px 40px; font-family: Georgia, serif; color: #222; }
+      .fake-page h2 { margin: 0 0 6px; font-size: 26px; }
+      .fake-page .meta { color: #888; font-size: 13px; margin-bottom: 20px; font-family: system-ui, sans-serif; }
+      .fake-page p { line-height: 1.7; margin: 0 0 14px; max-width: 62ch; }
+      iframe {
+        position: absolute; top: 0; left: 0; width: 100%; height: 34px;
+        border: 0; background: transparent;
+      }
+      .hint {
+        position: absolute; top: 44px; left: 50%; transform: translateX(-50%);
+        background: rgba(18,20,27,.9); color: #cbd3e4; font-size: 12px;
+        padding: 6px 13px; border-radius: 999px; pointer-events: none;
+        font-family: system-ui, sans-serif; border: 1px solid rgba(255,255,255,.12);
+        transition: opacity .3s ease;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Auto-hiding top drag strip</h1>
+    <p class="note">
+      Move your pointer to the <strong>very top edge</strong> of the white page below — the strip slides
+      down. Move away and it hides again after 3 seconds. Click the
+      <kbd>pin</kbd> icon to keep it open permanently. In the real app the strip
+      is an overlay only <strong>6px tall</strong> while hidden, so the page keeps receiving
+      essentially every pointer event.
+    </p>
+
+    <div class="stage">
+      <div class="fake-page">
+        <h2>The quick brown fox</h2>
+        <div class="meta">Preview article · 3 min read</div>
+        <p>This stands in for a real webpage. In MiniBrowser the page window is completely frameless — no title bar, no borders, no native menu — so the page is rendered edge to edge.</p>
+        <p>That left one gap: with no title bar there was nothing to grab to move the window. The auto-hiding strip above fills it without permanently stealing any space from the page.</p>
+        <p>It carries the page title plus minimize, maximize and close buttons, and it can be switched off entirely from the Window menu on the floating control bar.</p>
+      </div>
+      <iframe id="frame" src="dragbar-inner.html" title="Drag strip"></iframe>
+      <div class="hint" id="hint">↑ move your pointer to the top edge</div>
+    </div>
+
+    <script>
+      const hint = document.getElementById('hint');
+      setTimeout(() => { hint.style.opacity = '0'; }, 6000);
+      window.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'expand') {
+          document.getElementById('frame').style.height = e.data.value ? '34px' : '6px';
+          hint.style.opacity = '0';
+        }
+      });
+    </script>
+  </body>
+</html>

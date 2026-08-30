@@ -1,0 +1,146 @@
+/* Auto-hiding drag strip for the frameless page window. */
+
+:root {
+  --h: 34px;
+  --bg: rgba(18, 20, 27, 0.9);
+  --fg: #eef1f7;
+  --fg-dim: #98a1b3;
+  --stroke: rgba(255, 255, 255, 0.1);
+  --accent: #5b8cff;
+  --danger: #ff5f6b;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: rgba(248, 250, 252, 0.93);
+    --fg: #131722;
+    --fg-dim: #5d6577;
+    --stroke: rgba(10, 15, 30, 0.12);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
+    Inter, Ubuntu, "Noto Sans", Cantarell, system-ui, sans-serif;
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+/* A 6px sliver at the very top. The overlay view is only this tall while
+   hidden, so the page keeps receiving every other pointer event. */
+.hotzone {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+}
+
+.strip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--h);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 0 12px;
+
+  background: var(--bg);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: 1px solid var(--stroke);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+
+  transform: translateY(-100%);
+  opacity: 0;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease;
+}
+
+body.shown .strip {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* ---- drag area ---- */
+
+.drag-area {
+  -webkit-app-region: drag;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: grab;
+}
+.drag-area:active { cursor: grabbing; }
+
+.dots { display: inline-flex; gap: 3px; flex: 0 0 auto; }
+.dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--fg-dim);
+  opacity: 0.65;
+}
+.drag-area:hover .dots i { background: var(--accent); opacity: 1; }
+
+.title {
+  font-size: 12px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- buttons ---- */
+
+.buttons {
+  display: flex;
+  gap: 2px;
+  flex: 0 0 auto;
+  -webkit-app-region: no-drag;
+}
+
+.wb {
+  width: 28px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.wb:hover { background: rgba(127, 145, 190, 0.18); color: var(--fg); }
+.wb:active { transform: scale(0.92); }
+.wb.danger:hover { background: rgba(255, 95, 107, 0.2); color: var(--danger); }
+.wb[aria-pressed="true"] { color: var(--accent); background: rgba(91, 140, 255, 0.16); }
+.wb:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.wb svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strip { transition-duration: 0.001ms; }
+}
