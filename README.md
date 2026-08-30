@@ -101,7 +101,7 @@ One click on **Clear all browsing data** wipes cookies, localStorage, IndexedDB,
 | **History** | Back, forward, home, plus current page + connection status |
 | **Ad Block** | On/off, cosmetic hiding, per-site allowlist, live counters, top blocked domains, filter-list subscriptions |
 | **Privacy** | Per-site grants (camera / mic / location / notifications), clear all data |
-| **Window** | Minimize, maximize, center, snap left/right/fill, "bar follows page window" toggle |
+| **Window** | **Always on top**, **transparency slider**, minimize, maximize, center, snap left/right/fill, "bar follows page window" toggle |
 
 Window buttons (─ □ ✕) on the right control the **page** window and live here too.
 
@@ -127,6 +127,7 @@ The bar reflows as you resize it: menu titles drop out progressively (Edit/Windo
 | `Ctrl/Cmd + P` | Print |
 | `Ctrl/Cmd + Shift + C` | Copy page address |
 | `F11` | Full screen the page window |
+| `Ctrl/Cmd + T` | Toggle always on top |
 | `Esc` | Close menu / find bar, or revert the address bar |
 
 ## Running it

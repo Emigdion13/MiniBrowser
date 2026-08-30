@@ -14,7 +14,8 @@ const listeners = {
   'nav:state': new Set(),
   'nav:loading': new Set(),
   'nav:blocked': new Set(),
-  'page:find-result': new Set()
+  'page:find-result': new Set(),
+  'win:content-focus': new Set()
 };
 
 for (const channel of Object.keys(listeners)) {
@@ -63,6 +64,8 @@ contextBridge.exposeInMainWorld('mini', {
 
   minimize: () => ipcRenderer.invoke('win:minimize'),
   fullscreen: () => ipcRenderer.invoke('win:fullscreen'),
+  alwaysOnTop: (v) => ipcRenderer.invoke('win:always-on-top', v),
+  opacity: (v) => ipcRenderer.invoke('win:opacity', Number(v)),
   center: () => ipcRenderer.invoke('win:center'),
   moveBy: (dx, dy) => ipcRenderer.invoke('win:move-by', Number(dx), Number(dy)),
   snap: (where) => ipcRenderer.invoke('win:snap', String(where)),
@@ -81,6 +84,7 @@ contextBridge.exposeInMainWorld('mini', {
   onLoading: subscribe('nav:loading'),
   onBlocked: subscribe('nav:blocked'),
   onFindResult: subscribe('page:find-result'),
+  onContentFocus: subscribe('win:content-focus'),
 
   platform: process.platform
 });

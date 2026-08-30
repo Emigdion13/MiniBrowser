@@ -198,6 +198,21 @@ const MENUS = {
   ],
 
   window: () => [
+    {
+      label: 'Always on top',
+      type: 'check',
+      checked: Boolean(state.alwaysOnTop),
+      keep: true,
+      run: async () => {
+        const on = await window.mini.alwaysOnTop();
+        state.alwaysOnTop = on;
+        showToast(on ? 'Page window stays on top' : 'Page window behaves normally');
+      }
+    },
+    { type: 'sep' },
+    { type: 'head', label: 'Transparency' },
+    { type: 'slider' },
+    { type: 'sep' },
     { label: 'Minimize page window', run: () => window.mini.minimize() },
     { label: 'Maximize / restore', run: () => window.mini.toggleMaximize() },
     { label: 'Center on screen', run: () => window.mini.center() },
@@ -238,6 +253,50 @@ function buildMenu(name) {
       dropdown.appendChild(head);
       continue;
     }
+    if (item.type === 'slider') {
+      const row = document.createElement('div');
+      row.className = 'mi-slider';
+
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.min = '20';
+      input.max = '100';
+      input.step = '5';
+      input.value = String(Math.round((state.opacity ?? 1) * 100));
+      input.setAttribute('aria-label', 'Page window opacity');
+
+      const value = document.createElement('b');
+      value.textContent = `${input.value}%`;
+
+      const apply = async () => {
+        value.textContent = `${input.value}%`;
+        const v = await window.mini.opacity(Number(input.value) / 100);
+        state.opacity = v;
+      };
+      input.addEventListener('input', apply);
+      // Keep the menu open while dragging the slider.
+      input.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+      row.append(input, value);
+      dropdown.appendChild(row);
+
+      const presets = document.createElement('div');
+      presets.className = 'mi-presets';
+      for (const pct of [100, 90, 75, 50]) {
+        const b = document.createElement('button');
+        b.className = 'preset';
+        b.textContent = pct === 100 ? 'Solid' : `${pct}%`;
+        b.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          input.value = String(pct);
+          await apply();
+        });
+        presets.appendChild(b);
+      }
+      dropdown.appendChild(presets);
+      continue;
+    }
+
     if (item.type === 'stat') {
       const row = document.createElement('div');
       row.className = 'mi-stat';
@@ -271,6 +330,12 @@ function buildMenu(name) {
     }
 
     btn.addEventListener('click', async () => {
+      if (item.keep) {
+        await item.run();
+        await refresh();
+        if (openMenu) buildMenu(openMenu);
+        return;
+      }
       closeMenu();
       await item.run();
       refresh();
@@ -301,6 +366,8 @@ async function showMenu(name) {
   await fitHeight();
 }
 
+window.addEventListener('resize', () => { if (openMenu) closeMenu(); });
+
 function closeMenu() {
   if (!openMenu) return;
   openMenu = null;
@@ -321,9 +388,23 @@ for (const title of menubar.querySelectorAll('.menu-title')) {
   });
 }
 
-document.addEventListener('click', (event) => {
-  if (openMenu && !dropdown.contains(event.target)) closeMenu();
+// Close on any press outside the dropdown. pointerdown (not click) so a
+// press-and-drag, or a press that steals focus, still dismisses the menu.
+document.addEventListener('pointerdown', (event) => {
+  if (!openMenu) return;
+  if (dropdown.contains(event.target)) return;
+  if (event.target.closest?.('.menu-title')) return; // the title handler toggles
+  closeMenu();
+}, true);
+
+// The bar is its own OS window: clicking the page window or another app sends
+// us no event at all, so dismiss on focus loss too.
+window.addEventListener('blur', () => closeMenu());
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) closeMenu();
 });
+// The main process tells us when the page window takes focus.
+window.mini.onContentFocus?.(() => closeMenu());
 
 // --- actions ---------------------------------------------------------------
 
@@ -535,6 +616,13 @@ document.addEventListener('keydown', (event) => {
   else if (mod && event.shiftKey && k === 'c') { event.preventDefault(); copyUrl(); }
   else if (mod && k === 'r') { event.preventDefault(); window.mini.reload(event.shiftKey); }
   else if (event.key === 'F11') { event.preventDefault(); window.mini.fullscreen(); }
+  else if (mod && k === 't') {
+    event.preventDefault();
+    window.mini.alwaysOnTop().then((on) => {
+      state.alwaysOnTop = on;
+      showToast(on ? 'Page window stays on top' : 'Page window behaves normally');
+    });
+  }
   else if (event.altKey && event.key === 'ArrowLeft') { event.preventDefault(); window.mini.back(); }
   else if (event.altKey && event.key === 'ArrowRight') { event.preventDefault(); window.mini.forward(); }
   else if (mod && (event.key === '=' || event.key === '+')) { event.preventDefault(); applyZoom('in'); }

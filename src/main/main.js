@@ -36,6 +36,8 @@ const HOME_URL = 'about:blank';
 
 let toolbarPinned = true;
 let lastBlocked = null;
+let contentAlwaysOnTop = false;
+let contentOpacity = 1;
 
 // ---------------------------------------------------------------------------
 // Content window: nothing but the website. No chrome, no buttons.
@@ -110,7 +112,10 @@ function createContentWindow() {
   // Keep the floating bar glued to the content window.
   contentWindow.on('move', repositionToolbar);
   contentWindow.on('resize', repositionToolbar);
-  contentWindow.on('focus', () => raiseToolbar());
+  contentWindow.on('focus', () => {
+    sendToToolbar('win:content-focus');
+    raiseToolbar();
+  });
   contentWindow.on('show', () => toolbarWindow?.showInactive());
   contentWindow.on('hide', () => toolbarWindow?.hide());
   contentWindow.on('minimize', () => toolbarWindow?.hide());
@@ -265,6 +270,8 @@ function currentState() {
     secure: url.startsWith('https://'),
     origin: originOf(url),
     pinned: toolbarPinned,
+    alwaysOnTop: contentAlwaysOnTop,
+    opacity: contentOpacity,
     blockedCount: adblock.countFor(originOf(url)),
     adblockEnabled: adblock.isEnabled(),
     siteAllowlisted: adblock.isAllowlisted(url),
@@ -397,6 +404,28 @@ handle('win:toggle-maximize', () => {
   if (contentWindow.isMaximized()) contentWindow.unmaximize();
   else contentWindow.maximize();
   return contentWindow.isMaximized();
+});
+
+handle('win:always-on-top', (value) => {
+  if (!contentWindow) return false;
+  contentAlwaysOnTop = value === undefined ? !contentAlwaysOnTop : Boolean(value);
+  // 'floating' sits above normal windows; the bar uses a higher level (1)
+  // so it always stays above the page window.
+  contentWindow.setAlwaysOnTop(contentAlwaysOnTop, 'floating', 0);
+  if (IS_MAC) {
+    contentWindow.setVisibleOnAllWorkspaces(contentAlwaysOnTop, { visibleOnFullScreenUI: true });
+  }
+  if (contentAlwaysOnTop) raiseToolbar();
+  return contentAlwaysOnTop;
+});
+
+handle('win:opacity', (value) => {
+  if (!contentWindow) return 1;
+  const v = Math.max(0.2, Math.min(1, Number(value) || 1));
+  contentOpacity = v;
+  // setOpacity is a no-op on some Linux WMs; harmless where unsupported.
+  contentWindow.setOpacity(v);
+  return v;
 });
 
 handle('win:fullscreen', () => {

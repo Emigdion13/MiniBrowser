@@ -10,13 +10,15 @@
     secure: true,
     origin: 'https://en.wikipedia.org',
     pinned: true,
+    alwaysOnTop: false,
+    opacity: 1,
     blockedCount: 7,
     adblockEnabled: true,
     siteAllowlisted: false,
     lastBlocked: null
   };
 
-  const subs = { state: new Set(), loading: new Set(), blocked: new Set(), find: new Set() };
+  const subs = { state: new Set(), loading: new Set(), blocked: new Set(), find: new Set(), focus: new Set() };
   const emit = (k, v) => subs[k].forEach((f) => f(v));
   const push = () => emit('state', { ...state });
 
@@ -97,6 +99,16 @@
     resizeBar: async (h) => h,
     minimize: async () => true,
     fullscreen: async () => true,
+    alwaysOnTop: async (v) => {
+      state.alwaysOnTop = v === undefined ? !state.alwaysOnTop : Boolean(v);
+      push(); return state.alwaysOnTop;
+    },
+    opacity: async (v) => {
+      state.opacity = Math.max(0.2, Math.min(1, Number(v) || 1));
+      const f = document.documentElement;
+      f.style.opacity = '1';
+      push(); return state.opacity;
+    },
     center: async () => true,
     moveBy: async () => true,
     snap: async () => true,
@@ -117,6 +129,7 @@
     onLoading: (f) => (subs.loading.add(f), () => subs.loading.delete(f)),
     onBlocked: (f) => (subs.blocked.add(f), () => subs.blocked.delete(f)),
     onFindResult: (f) => (subs.find.add(f), () => subs.find.delete(f)),
+    onContentFocus: (f) => (subs.focus.add(f), () => subs.focus.delete(f)),
     platform: 'linux'
   };
 
