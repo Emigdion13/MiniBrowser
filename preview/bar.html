@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>MiniBrowser Controls</title>
+    <link rel="stylesheet" href="../src/renderer/toolbar/toolbar.css" />
+  </head>
+  <body>
+    <div class="bar" id="bar">
+      <div class="drag-strip" id="dragStrip" title="Drag to move">
+        <span class="grip"></span>
+      </div>
+
+      <div class="row primary">
+        <div class="cluster nav">
+          <button class="icon" id="back" title="Back (Alt+←)" aria-label="Back">
+            <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
+          </button>
+          <button class="icon" id="forward" title="Forward (Alt+→)" aria-label="Forward">
+            <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+          </button>
+          <button class="icon" id="reload" title="Reload (Ctrl/Cmd+R)" aria-label="Reload">
+            <svg viewBox="0 0 24 24" class="ico-reload">
+              <path d="M20 11a8 8 0 10-2.3 5.7" />
+              <path d="M20 5v6h-6" />
+            </svg>
+            <svg viewBox="0 0 24 24" class="ico-stop"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+          <button class="icon" id="home" title="Home" aria-label="Home">
+            <svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-4v-6h-6v6H5a1 1 0 01-1-1z" /></svg>
+          </button>
+        </div>
+
+        <form class="omnibox" id="omniform" autocomplete="off">
+          <span class="lock" id="lock" title="Connection status">
+            <svg viewBox="0 0 24 24" class="ico-secure">
+              <rect x="5" y="10" width="14" height="10" rx="2" />
+              <path d="M8 10V7a4 4 0 018 0v3" />
+            </svg>
+            <svg viewBox="0 0 24 24" class="ico-insecure">
+              <path d="M12 4v9m0 4v.5" />
+              <path d="M10.3 3.9L2.6 18a1.6 1.6 0 001.4 2.4h16a1.6 1.6 0 001.4-2.4L13.7 3.9a1.6 1.6 0 00-2.8 0z" />
+            </svg>
+          </span>
+          <input
+            id="url"
+            type="text"
+            spellcheck="false"
+            autocapitalize="off"
+            autocorrect="off"
+            placeholder="Search DuckDuckGo or enter an address"
+            aria-label="Address and search bar"
+          />
+          <button type="button" class="chip shield" id="shield" title="Trackers blocked on this page">
+            <svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6z" /></svg>
+            <span id="shieldCount">0</span>
+          </button>
+        </form>
+
+        <div class="cluster right">
+          <button class="icon" id="menu" title="Menu" aria-label="Menu" aria-expanded="false">
+            <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+          <button class="icon danger" id="close" title="Close browser" aria-label="Close">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="progress" id="progress"><span></span></div>
+
+      <div class="panel" id="panel" hidden>
+        <div class="panel-section">
+          <span class="panel-label">Zoom</span>
+          <div class="cluster">
+            <button class="icon small" id="zoomOut" title="Zoom out">
+              <svg viewBox="0 0 24 24"><path d="M5 12h14" /></svg>
+            </button>
+            <button class="pill" id="zoomReset" title="Reset zoom">100%</button>
+            <button class="icon small" id="zoomIn" title="Zoom in">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <span class="panel-label">Window</span>
+          <div class="cluster">
+            <button class="pill" id="minimize">Minimize</button>
+            <button class="pill" id="maximize">Maximize</button>
+            <button class="pill toggle on" id="pin" aria-pressed="true">Bar follows window</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <span class="panel-label">Privacy</span>
+          <div class="cluster wrap">
+            <button class="pill" id="grantCam">Allow camera here</button>
+            <button class="pill" id="grantMic">Allow mic here</button>
+            <button class="pill" id="grantLoc">Allow location here</button>
+            <button class="pill warn" id="clear">Clear all browsing data</button>
+          </div>
+        </div>
+
+        <div class="panel-section report" id="report">
+          <span class="panel-label">Blocked this session</span>
+          <ul id="reportList"><li class="muted">Nothing blocked yet.</li></ul>
+        </div>
+      </div>
+
+      <div class="toast" id="toast" hidden></div>
+    </div>
+
+    <script src="mock-bridge.js"></script>
+    <script src="../src/renderer/toolbar/toolbar.js"></script>
+  </body>
+</html>
