@@ -11,6 +11,8 @@
     origin: 'https://en.wikipedia.org',
     pinned: true,
     blockedCount: 7,
+    adblockEnabled: true,
+    siteAllowlisted: false,
     lastBlocked: null
   };
 
@@ -58,6 +60,15 @@
       window.__z = d === 'reset' ? 0 : Math.max(-5, Math.min(5, (window.__z || 0) + (d === 'in' ? 0.5 : -0.5)));
       return window.__z;
     },
+    adblockToggle: async () => { state.adblockEnabled = !state.adblockEnabled; push(); return state.adblockEnabled; },
+    adblockCosmetic: async (v) => v,
+    adblockToggleSite: async () => {
+      state.siteAllowlisted = !state.siteAllowlisted; push();
+      return { domain: 'wikipedia.org', blocking: !state.siteAllowlisted };
+    },
+    adblockSubscribe: async () => ({ ok: true, networkRules: 84213, cosmeticRules: 51204 }),
+    adblockUnsubscribe: async () => true,
+
     clearData: async () => {
       state.blockedCount = 0; state.url = ''; push();
       emit('blocked', { reason: 'cleared' });
@@ -66,7 +77,16 @@
     grant: async () => ({ ...state }),
     privacyReport: async () => ({
       total: 128,
-      listSize: 74,
+      enabled: state.adblockEnabled,
+      cosmeticEnabled: true,
+      networkRules: 214,
+      cosmeticRules: 31,
+      allowlist: state.siteAllowlisted ? ['wikipedia.org'] : [],
+      subscriptions: [
+        { key: 'easylist', name: 'EasyList (ads)', active: false },
+        { key: 'easyprivacy', name: 'EasyPrivacy (tracking)', active: false },
+        { key: 'annoyances', name: 'Cookie notices & annoyances', active: false }
+      ],
       top: [
         ['google-analytics.com', 31], ['doubleclick.net', 24], ['googletagmanager.com', 18],
         ['facebook.net', 14], ['criteo.com', 11], ['hotjar.com', 9], ['taboola.com', 7],
@@ -101,7 +121,7 @@
   };
 
   window.addEventListener('message', (e) => {
-    if (e.data === 'toggle-panel') document.querySelector('[data-menu="privacy"]')?.click();
+    if (e.data === 'toggle-panel') document.querySelector('[data-menu="adblock"]')?.click();
   });
 
   // Demo a blocked popup shortly after load so the toast is visible.

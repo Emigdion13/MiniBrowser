@@ -14,7 +14,7 @@
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "dist:all": "electron-builder -mwl",
-    "test": "node test/logic.test.js"
+    "test": "node test/logic.test.js && node test/adblock.test.js"
   },
   "devDependencies": {
     "electron": "^32.2.7",

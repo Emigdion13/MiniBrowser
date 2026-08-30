@@ -21,6 +21,44 @@ The page and the browser UI live in **two separate OS windows**.
 
 Because the bar is a genuinely separate window with its own renderer process, a compromised page has **no DOM access to the address bar at all** — it cannot spoof the URL, fake the lock icon, or phish your input.
 
+## Ad blocker
+
+A real filter engine, written from scratch with no dependencies. It parses **Adblock Plus / uBlock Origin syntax**:
+
+| Syntax | Meaning |
+|---|---|
+| `\|\|example.com^` | Block a domain and its subdomains |
+| `\|http://example.com` | Anchor to the start of the URL |
+| `/banner/*.gif\|` | Wildcards and an end anchor |
+| `/ads?\d+/` | Regular-expression rules |
+| `@@\|\|example.com^` | **Exception** — allow, overrides blocks |
+| `$script,image,third-party` | Restrict by resource type and party |
+| `$domain=a.com\|~b.com` | Scope to (or exclude) specific sites |
+| `example.com##.ad-banner` | **Cosmetic** — hide the element |
+| `example.com#@#.ad-banner` | Cosmetic exception |
+
+**Network filtering** cancels the request before a byte is sent. **Cosmetic filtering** injects a user-origin stylesheet on `dom-ready`, so the empty gap where an ad used to be collapses instead of leaving a hole.
+
+### Speed
+
+Every rule is indexed under the longest token in its pattern, so a lookup only tests the handful of rules sharing a token with the URL — not the whole list:
+
+```
+20,157 rules → 0.005 ms per lookup
+```
+
+That is roughly 190,000 URL checks per second, so the blocker is never the bottleneck.
+
+### Controls
+
+- **Master switch** and a separate **cosmetic hiding** toggle
+- **Per-site allowlist** — "Allow ads on this site" when a site breaks; persisted across restarts
+- **Live counters** — ads blocked on the page (in the shield chip), session totals, rule counts
+- **Top blocked domains** report
+- **Optional subscriptions** to EasyList, EasyPrivacy and Fanboy's Annoyances
+
+The built-in list ships **offline** — a fresh install makes no network request before your first page loads, so there is nothing to intercept or poison. Subscriptions are opt-in from the Ad Block menu, cached to disk, and merged with the built-in rules.
+
 ## Security model
 
 The rendered page is treated as fully hostile. Every layer below is on by default.
@@ -35,7 +73,7 @@ The rendered page is treated as fully hostile. Every layer below is on by defaul
 | **Permissions** | Camera, mic, location, notifications, USB, HID, serial and Bluetooth are **denied by default**. You grant them per-site, per-session, from the menu |
 | **Certificates** | Invalid certificates are never overridable — the load simply fails |
 | **Downloads** | Blocked from starting silently; you are notified instead |
-| **Tracking** | Built-in blocklist (analytics, ads, fingerprinting, session replay), matched by hostname suffix so query-string tricks cannot bypass it |
+| **Ads & tracking** | Full Adblock Plus-syntax filter engine — see below |
 | **Cookies** | Third-party `Cookie` and `Referer` headers stripped on the way out; third-party `Set-Cookie` stripped on the way in |
 | **Headers** | `DNT: 1` and `Sec-GPC: 1` sent on every request |
 | **UI** | Toolbar page ships a strict CSP: `default-src 'none'`, no inline script, no remote origins |
@@ -61,7 +99,8 @@ One click on **Clear all browsing data** wipes cookies, localStorage, IndexedDB,
 | **Edit** | Undo/redo, cut/copy/paste, select all, find in page |
 | **View** | Reload, hard reload, stop, zoom in/out/reset (live %), full screen |
 | **History** | Back, forward, home, plus current page + connection status |
-| **Privacy** | Tracker count, per-site grants (camera / mic / location / notifications), blocked-request report, clear all data |
+| **Ad Block** | On/off, cosmetic hiding, per-site allowlist, live counters, top blocked domains, filter-list subscriptions |
+| **Privacy** | Per-site grants (camera / mic / location / notifications), clear all data |
 | **Window** | Minimize, maximize, center, snap left/right/fill, "bar follows page window" toggle |
 
 Window buttons (─ □ ✕) on the right control the **page** window and live here too.
@@ -109,7 +148,10 @@ npm start
 npm test
 ```
 
-Covers URL normalisation (including rejection of `javascript:` / `file:` / `chrome:`) and the tracker blocklist matcher. Electron is stubbed, so it runs under plain Node.
+**38 checks**, no Electron required:
+
+- `logic.test.js` — URL normalisation, including rejection of `javascript:` / `file:` / `chrome:`
+- `adblock.test.js` — every filter syntax form, `$type` / `$third-party` / `$domain` options, exception rules, cosmetic matching and inheritance, parser robustness against malformed input, verification that real ad servers are blocked while Wikipedia/GitHub/jsDelivr are not, and a performance assertion on 20k rules
 
 ## Building installers
 
@@ -138,12 +180,15 @@ src/
   main/
     main.js             app lifecycle, two windows, IPC handlers
     security.js         hardening policy, permissions, URL normalisation
-    tracker-blocker.js  hostname-suffix blocklist + cookie stripping
+    adblock/
+      index.js          blocker: allowlist, stats, subscriptions, cosmetics
+      filter-engine.js  ABP-syntax parser + token-indexed matcher
+      default-filters.js  built-in offline filter list
   preload/
     toolbar-preload.js  the entire (tiny) privileged API surface
   renderer/toolbar/     the floating bar UI
 preview/                browser-only mock for previewing the UI
-test/logic.test.js      pure-logic tests
+test/                   38 pure-logic tests
 ```
 
 ## License

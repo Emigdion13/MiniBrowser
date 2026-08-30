@@ -245,6 +245,8 @@ svg {
 }
 .chip svg { width: 13px; height: 13px; }
 .chip.active { color: var(--good); background: rgba(53, 211, 154, 0.16); }
+.chip.off { color: var(--fg-dim); background: rgba(127,145,190,.1); opacity: .55; }
+.chip.off svg { stroke-dasharray: 2 2; }
 
 /* reload / stop swap */
 .ico-stop { display: none; }
@@ -399,6 +401,7 @@ svg {
 @media (max-width: 560px) {
   #home, #moveWindow { display: none; }
   .menu-title[data-menu="history"], .menu-title[data-menu="file"] { display: none; }
+  .menu-title[data-menu="privacy"] { display: none; }
   .row { padding: 4px 8px 8px; gap: 6px; }
   #shieldCount { display: none; }
   .chip { padding: 0 7px; }

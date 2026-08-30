@@ -13,7 +13,7 @@ const {
   originOf
 } = require('./security');
 
-const trackerBlocker = require('./tracker-blocker');
+const adblock = require('./adblock');
 
 // ---------------------------------------------------------------------------
 // Single instance + pre-ready hardening
@@ -72,7 +72,10 @@ function createContentWindow() {
 
   const contentSession = session.fromPartition(CONTENT_PARTITION);
   hardenBrowsingSession(contentSession, { onBlocked: reportBlocked });
-  trackerBlocker.attach(contentSession, { onBlocked: reportBlocked });
+  adblock.attach(contentSession, {
+    onBlocked: reportBlocked,
+    getPageUrl: () => pageView?.webContents.getURL() || ''
+  });
 
   pageView = new WebContentsView({
     webPreferences: {
@@ -154,6 +157,9 @@ function wireContentEvents() {
     push();
   });
   wc.on('certificate-error', () => push());
+  wc.on('dom-ready', () => {
+    adblock.applyCosmetics(wc);
+  });
   wc.on('found-in-page', (_e, result) => {
     sendToToolbar('page:find-result', {
       active: result.activeMatchOrdinal,
@@ -259,7 +265,9 @@ function currentState() {
     secure: url.startsWith('https://'),
     origin: originOf(url),
     pinned: toolbarPinned,
-    blockedCount: trackerBlocker.countFor(originOf(url)),
+    blockedCount: adblock.countFor(originOf(url)),
+    adblockEnabled: adblock.isEnabled(),
+    siteAllowlisted: adblock.isAllowlisted(url),
     lastBlocked
   };
 }
@@ -353,7 +361,7 @@ handle('privacy:clear', async () => {
   await ses.clearAuthCache();
   await ses.clearHostResolverCache();
   revokeAllPermissions();
-  trackerBlocker.reset();
+  adblock.reset();
   pageView?.webContents.loadURL(HOME_URL).catch(() => {});
   return currentState();
 });
@@ -364,7 +372,7 @@ handle('privacy:grant', (permission) => {
   return currentState();
 });
 
-handle('privacy:report', () => trackerBlocker.report());
+handle('privacy:report', () => adblock.report());
 
 handle('bar:pin', (value) => {
   toolbarPinned = Boolean(value);
@@ -467,6 +475,29 @@ handle('page:edit', (action) => {
   return true;
 });
 
+handle('adblock:toggle', () => {
+  const value = adblock.setEnabled(!adblock.isEnabled());
+  pageView?.webContents.reload();
+  return value;
+});
+
+handle('adblock:cosmetic', (value) => adblock.setCosmetic(value));
+
+handle('adblock:toggle-site', () => {
+  const url = pageView?.webContents.getURL() || '';
+  const result = adblock.toggleSite(url);
+  if (result) pageView?.webContents.reload();
+  return result;
+});
+
+handle('adblock:subscribe', async (key) => {
+  const result = await adblock.subscribe(String(key));
+  if (result.ok) pageView?.webContents.reload();
+  return result;
+});
+
+handle('adblock:unsubscribe', (key) => adblock.unsubscribe(String(key)));
+
 handle('shell:external', (url) => {
   const target = normalizeInput(String(url || ''));
   if (target && /^https?:/i.test(target)) shell.openExternal(target).catch(() => {});
@@ -494,7 +525,7 @@ app.whenReady().then(async () => {
   // No native application menu anywhere. The floating bar owns every menu.
   Menu.setApplicationMenu(null);
 
-  await trackerBlocker.load();
+  await adblock.load();
   createContentWindow();
   createToolbarWindow();
 

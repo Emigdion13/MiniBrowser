@@ -48,6 +48,12 @@ contextBridge.exposeInMainWorld('mini', {
 
   zoom: (direction) => ipcRenderer.invoke('view:zoom', String(direction)),
 
+  adblockToggle: () => ipcRenderer.invoke('adblock:toggle'),
+  adblockCosmetic: (v) => ipcRenderer.invoke('adblock:cosmetic', Boolean(v)),
+  adblockToggleSite: () => ipcRenderer.invoke('adblock:toggle-site'),
+  adblockSubscribe: (key) => ipcRenderer.invoke('adblock:subscribe', String(key)),
+  adblockUnsubscribe: (key) => ipcRenderer.invoke('adblock:unsubscribe', String(key)),
+
   clearData: () => ipcRenderer.invoke('privacy:clear'),
   grant: (permission) => ipcRenderer.invoke('privacy:grant', String(permission)),
   privacyReport: () => ipcRenderer.invoke('privacy:report'),

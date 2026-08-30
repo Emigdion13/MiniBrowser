@@ -27,7 +27,6 @@ Module._resolveFilename = function (request, ...rest) {
 require.cache['electron-stub'] = { id: 'electron-stub', filename: 'electron-stub', loaded: true, exports: stub };
 
 const { normalizeInput } = require('../src/main/security');
-const blocker = require('../src/main/tracker-blocker');
 
 let passed = 0;
 function check(name, fn) {
@@ -65,20 +64,6 @@ check('falls back to an encoded search query', () => {
 });
 check('ignores empty input', () => {
   assert.strictEqual(normalizeInput('   '), null);
-});
-
-console.log('tracker blocker');
-check('blocks known tracker hosts', () => {
-  assert.ok(blocker.hostIsBlocked('www.google-analytics.com'));
-  assert.ok(blocker.hostIsBlocked('doubleclick.net'));
-  assert.ok(blocker.hostIsBlocked('a.b.criteo.com'));
-});
-check('leaves ordinary hosts alone', () => {
-  assert.ok(!blocker.hostIsBlocked('example.com'));
-  assert.ok(!blocker.hostIsBlocked('wikipedia.org'));
-});
-check('does not match on partial suffixes', () => {
-  assert.ok(!blocker.hostIsBlocked('notdoubleclick.net'));
 });
 
 console.log(`\n${passed} checks passed.`);

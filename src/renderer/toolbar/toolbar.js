@@ -31,6 +31,7 @@ let toastTimer = null;
 let openMenu = null;
 let zoomLevel = 0;
 let findOpen = false;
+let adReport = null;
 
 // --- helpers ---------------------------------------------------------------
 
@@ -114,17 +115,85 @@ const MENUS = {
     { type: 'stat', label: 'Connection', value: state.url ? (state.secure ? 'HTTPS' : 'Not secure') : '\u2014' }
   ],
 
+  adblock: () => {
+    const items = [
+      {
+        label: 'Block ads and trackers',
+        type: 'check',
+        checked: Boolean(state.adblockEnabled),
+        run: async () => {
+          const on = await window.mini.adblockToggle();
+          showToast(on ? 'Ad blocking on' : 'Ad blocking off \u2014 reloading');
+        }
+      },
+      {
+        label: 'Hide leftover ad space',
+        type: 'check',
+        checked: adReport ? adReport.cosmeticEnabled : true,
+        run: async () => {
+          const on = await window.mini.adblockCosmetic(!(adReport && adReport.cosmeticEnabled));
+          if (adReport) adReport.cosmeticEnabled = on;
+          showToast(on ? 'Cosmetic hiding on' : 'Cosmetic hiding off');
+        }
+      },
+      { type: 'sep' },
+      { type: 'head', label: 'This page' },
+      { type: 'stat', label: 'Blocked here', value: String(state.blockedCount || 0) },
+      {
+        label: state.siteAllowlisted ? 'Re-enable blocking on this site' : 'Allow ads on this site',
+        run: async () => {
+          const r = await window.mini.adblockToggleSite();
+          if (r) showToast(r.blocking ? `Blocking on for ${r.domain}` : `Ads allowed on ${r.domain}`);
+        },
+        enabled: Boolean(state.url)
+      },
+      { type: 'sep' },
+      { type: 'head', label: 'Statistics' },
+      { type: 'stat', label: 'Blocked this session', value: adReport ? String(adReport.total) : '\u2026' },
+      { type: 'stat', label: 'Network rules', value: adReport ? adReport.networkRules.toLocaleString() : '\u2026' },
+      { type: 'stat', label: 'Cosmetic rules', value: adReport ? adReport.cosmeticRules.toLocaleString() : '\u2026' },
+      { label: 'Top blocked domains\u2026', run: showReport }
+    ];
+
+    if (adReport && adReport.subscriptions.length) {
+      items.push({ type: 'sep' }, { type: 'head', label: 'Filter list subscriptions' });
+      for (const sub of adReport.subscriptions) {
+        items.push({
+          label: sub.name,
+          type: 'check',
+          checked: sub.active,
+          run: async () => {
+            if (sub.active) {
+              await window.mini.adblockUnsubscribe(sub.key);
+              showToast(`${sub.name} removed`);
+            } else {
+              showToast(`Downloading ${sub.name}\u2026`);
+              const r = await window.mini.adblockSubscribe(sub.key);
+              showToast(r.ok ? `${sub.name} added \u2014 ${r.networkRules.toLocaleString()} rules` : `Failed: ${r.error}`);
+            }
+            loadReport();
+          }
+        });
+      }
+    }
+
+    if (adReport && adReport.allowlist.length) {
+      items.push({ type: 'sep' }, { type: 'head', label: 'Ads allowed on' });
+      for (const d of adReport.allowlist.slice(0, 6)) {
+        items.push({ type: 'stat', label: d, value: '' });
+      }
+    }
+
+    return items;
+  },
+
   privacy: () => [
-    { type: 'head', label: 'This page' },
-    { type: 'stat', label: 'Trackers blocked', value: String(state.blockedCount || 0) },
-    { type: 'sep' },
     { type: 'head', label: 'Grant for this site only' },
     { label: 'Allow camera', run: () => grant('media', 'Camera allowed for this site') },
     { label: 'Allow microphone', run: () => grant('media', 'Microphone allowed for this site') },
     { label: 'Allow location', run: () => grant('geolocation', 'Location allowed for this site') },
     { label: 'Allow notifications', run: () => grant('notifications', 'Notifications allowed for this site') },
     { type: 'sep' },
-    { label: 'Blocked-request report\u2026', run: showReport },
     { label: 'Clear all browsing data', danger: true, run: clearData }
   ],
 
@@ -214,6 +283,9 @@ async function showMenu(name) {
   const title = menubar.querySelector(`[data-menu="${name}"]`);
   if (!title) return;
 
+  // The Ad Block menu shows live counters; fetch them before laying out.
+  if (name === 'adblock' && !adReport) await loadReport();
+
   openMenu = name;
   buildMenu(name);
   dropdown.hidden = false;
@@ -282,8 +354,13 @@ async function clearData() {
   showToast('Cookies, cache and site data cleared');
 }
 
+async function loadReport() {
+  adReport = await window.mini.privacyReport();
+  return adReport;
+}
+
 async function showReport() {
-  const data = await window.mini.privacyReport();
+  const data = await loadReport();
   if (!data || !data.total) {
     showToast('Nothing blocked yet');
     return;
@@ -378,9 +455,13 @@ function render(next) {
   const blocked = state.blockedCount || 0;
   shieldCount.textContent = String(blocked);
   shield.classList.toggle('active', blocked > 0);
-  shield.title = blocked
-    ? `${blocked} tracker${blocked === 1 ? '' : 's'} blocked on this page`
-    : 'Tracker blocking is on';
+  const off = state.adblockEnabled === false || state.siteAllowlisted;
+  shield.classList.toggle('off', off);
+  shield.title = off
+    ? (state.siteAllowlisted ? 'Ads allowed on this site' : 'Ad blocking is off')
+    : blocked
+      ? `${blocked} ad${blocked === 1 ? '' : 's'} and tracker${blocked === 1 ? '' : 's'} blocked here`
+      : 'Ad blocking is on';
 }
 
 async function refresh() {
@@ -391,7 +472,7 @@ window.mini.onState(render);
 window.mini.onLoading((loading) => bar.classList.toggle('loading', Boolean(loading)));
 window.mini.onBlocked((info) => {
   if (!info) return;
-  if (info.reason === 'tracker') {
+  if (info.reason === 'ad' || info.reason === 'tracker') {
     refresh();
     return;
   }
@@ -440,7 +521,7 @@ $('reload').addEventListener('click', async () => {
 $('minimize').addEventListener('click', () => window.mini.minimize());
 $('maximize').addEventListener('click', () => window.mini.toggleMaximize());
 $('close').addEventListener('click', () => window.mini.close());
-shield.addEventListener('click', () => showMenu('privacy'));
+shield.addEventListener('click', () => showMenu('adblock'));
 
 // --- keyboard shortcuts ----------------------------------------------------
 
@@ -468,6 +549,7 @@ document.addEventListener('keydown', (event) => {
 // --- boot ------------------------------------------------------------------
 
 refresh();
-setInterval(() => { if (!openMenu) refresh(); }, 1500);
+loadReport();
+setInterval(() => { if (!openMenu) { refresh(); loadReport(); } }, 1500);
 fitHeight();
 urlInput.focus();
