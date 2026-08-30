@@ -16,8 +16,8 @@ Windows · macOS · Linux
 
 The page and the browser UI live in **two separate OS windows**.
 
-- **Content window** — nothing but the website. No tabs, no title bar clutter, no buttons overlapping the page. The site gets the whole surface.
-- **Control bar** — its own frameless, transparent, always-on-top window that floats over everything like a picture-in-picture player. Drag it anywhere, resize it, park it on a second monitor.
+- **Content window** — *only* the webpage. Frameless: no title bar, no native menu, no buttons, no borders. The page is rendered edge to edge and nothing else exists in that window.
+- **Control bar** — its own frameless, transparent, always-on-top window that floats over everything like a picture-in-picture player. It owns **every** menu, button and control in the application. Drag it anywhere, resize it, park it on a second monitor.
 
 Because the bar is a genuinely separate window with its own renderer process, a compromised page has **no DOM access to the address bar at all** — it cannot spoof the URL, fake the lock icon, or phish your input.
 
@@ -46,22 +46,35 @@ One click on **Clear all browsing data** wipes cookies, localStorage, IndexedDB,
 
 ```
  ┌──────────────────────────────────────────────────────────┐
- │  ── drag ──                                              │
- │  ‹  ›  ⟳  ⌂   🔒 en.wikipedia.org/wiki/…      🛡 7   ☰  ✕ │
+ │ 🛡  File  Edit  View  History  Privacy  Window    ─ □ ✕  │  ← menubar
+ │  ‹  ›  ⟳  ⌂   🔒 en.wikipedia.org/wiki/…    🛡 7    ✥    │  ← navigation
  │ ────────────────────── progress ──────────────────────── │
+ │ 🔍 find in page                        3/12   ˄ ˅  ✕     │  ← find (Ctrl+F)
  └──────────────────────────────────────────────────────────┘
 ```
 
-- Back / forward / reload-stop / home
-- Omnibox — a URL, a bare hostname, or a search phrase (DuckDuckGo)
-- Lock indicator: green HTTPS, amber for anything else
-- Shield with a live count of trackers blocked on the current page
-- Menu panel: zoom, window controls, per-site permission grants, data wipe, and a blocked-request report
-- **Bar follows window** toggle — glue it to the content window, or let it float free
+**Row 1 — the menubar.** A full application menubar, hover-to-slide between menus just like a native one:
+
+| Menu | Contains |
+|---|---|
+| **File** | New address, home, copy page address, open in system browser, print, quit |
+| **Edit** | Undo/redo, cut/copy/paste, select all, find in page |
+| **View** | Reload, hard reload, stop, zoom in/out/reset (live %), full screen |
+| **History** | Back, forward, home, plus current page + connection status |
+| **Privacy** | Tracker count, per-site grants (camera / mic / location / notifications), blocked-request report, clear all data |
+| **Window** | Minimize, maximize, center, snap left/right/fill, "bar follows page window" toggle |
+
+Window buttons (─ □ ✕) on the right control the **page** window and live here too.
+
+**Row 2 — navigation.** Back / forward / reload-stop / home, the omnibox (URL, bare hostname, or a DuckDuckGo search), a lock indicator (green HTTPS, amber otherwise), the tracker shield, and a **✥ move handle** — since the page window is frameless, you drag it from here.
+
+**Row 3 — find in page**, opened with `Ctrl/Cmd+F`, with match counts and next/previous.
+
+The bar grows and shrinks automatically as menus and the find bar open.
 
 ### Responsive
 
-The bar reflows as you resize it: at 560px the home button and shield count drop, at 420px it reduces to back / omnibox / menu, and on touch screens (`pointer: coarse`) every hit target grows to 42px. Dark and light themes follow the OS, and `prefers-reduced-motion` is respected.
+The bar reflows as you resize it: menu titles drop out progressively (Edit/Window at 700px, File/History at 560px, View at 420px), the home button and move handle hide at 560px, and on touch screens (`pointer: coarse`) every hit target grows to 42px. Dark and light themes follow the OS, and `prefers-reduced-motion` is respected.
 
 ### Shortcuts
 
@@ -71,7 +84,11 @@ The bar reflows as you resize it: at 560px the home button and shield count drop
 | `Ctrl/Cmd + R` | Reload (`+Shift` bypasses cache) |
 | `Alt + ← / →` | Back / forward |
 | `Ctrl/Cmd + + / − / 0` | Zoom in / out / reset |
-| `Esc` | Close panel, or revert the address bar |
+| `Ctrl/Cmd + F` | Find in page |
+| `Ctrl/Cmd + P` | Print |
+| `Ctrl/Cmd + Shift + C` | Copy page address |
+| `F11` | Full screen the page window |
+| `Esc` | Close menu / find bar, or revert the address bar |
 
 ## Running it
 

@@ -14,7 +14,7 @@
     lastBlocked: null
   };
 
-  const subs = { state: new Set(), loading: new Set(), blocked: new Set() };
+  const subs = { state: new Set(), loading: new Set(), blocked: new Set(), find: new Set() };
   const emit = (k, v) => subs[k].forEach((f) => f(v));
   const push = () => emit('state', { ...state });
 
@@ -75,7 +75,20 @@
     }),
     pin: async (v) => { state.pinned = v; push(); return v; },
     resizeBar: async (h) => h,
-    minimize: async () => emit('blocked', { reason: 'preview-minimize' }),
+    minimize: async () => true,
+    fullscreen: async () => true,
+    center: async () => true,
+    moveBy: async () => true,
+    snap: async () => true,
+    find: async (q) => {
+      const total = q ? Math.max(1, q.length * 2) : 0;
+      emit('find', { active: total ? 1 : 0, total });
+      return true;
+    },
+    findStop: async () => { emit('find', { active: 0, total: 0 }); return true; },
+    print: async () => true,
+    copyUrl: async () => state.url,
+    edit: async () => true,
     toggleMaximize: async () => true,
     close: async () => emit('blocked', { reason: 'preview-close' }),
     focusContent: async () => true,
@@ -83,11 +96,12 @@
     onState: (f) => (subs.state.add(f), () => subs.state.delete(f)),
     onLoading: (f) => (subs.loading.add(f), () => subs.loading.delete(f)),
     onBlocked: (f) => (subs.blocked.add(f), () => subs.blocked.delete(f)),
+    onFindResult: (f) => (subs.find.add(f), () => subs.find.delete(f)),
     platform: 'linux'
   };
 
   window.addEventListener('message', (e) => {
-    if (e.data === 'toggle-panel') document.getElementById('menu')?.click();
+    if (e.data === 'toggle-panel') document.querySelector('[data-menu="privacy"]')?.click();
   });
 
   // Demo a blocked popup shortly after load so the toast is visible.

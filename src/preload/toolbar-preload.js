@@ -13,7 +13,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 const listeners = {
   'nav:state': new Set(),
   'nav:loading': new Set(),
-  'nav:blocked': new Set()
+  'nav:blocked': new Set(),
+  'page:find-result': new Set()
 };
 
 for (const channel of Object.keys(listeners)) {
@@ -55,6 +56,16 @@ contextBridge.exposeInMainWorld('mini', {
   resizeBar: (height) => ipcRenderer.invoke('bar:resize', Number(height)),
 
   minimize: () => ipcRenderer.invoke('win:minimize'),
+  fullscreen: () => ipcRenderer.invoke('win:fullscreen'),
+  center: () => ipcRenderer.invoke('win:center'),
+  moveBy: (dx, dy) => ipcRenderer.invoke('win:move-by', Number(dx), Number(dy)),
+  snap: (where) => ipcRenderer.invoke('win:snap', String(where)),
+
+  find: (query, forward) => ipcRenderer.invoke('page:find', String(query), forward !== false),
+  findStop: () => ipcRenderer.invoke('page:find-stop'),
+  print: () => ipcRenderer.invoke('page:print'),
+  copyUrl: () => ipcRenderer.invoke('page:copy-url'),
+  edit: (action) => ipcRenderer.invoke('page:edit', String(action)),
   toggleMaximize: () => ipcRenderer.invoke('win:toggle-maximize'),
   close: () => ipcRenderer.invoke('win:close'),
   focusContent: () => ipcRenderer.invoke('win:focus'),
@@ -63,6 +74,7 @@ contextBridge.exposeInMainWorld('mini', {
   onState: subscribe('nav:state'),
   onLoading: subscribe('nav:loading'),
   onBlocked: subscribe('nav:blocked'),
+  onFindResult: subscribe('page:find-result'),
 
   platform: process.platform
 });

@@ -1,7 +1,7 @@
 'use strict';
 
 const path = require('path');
-const { app, BrowserWindow, WebContentsView, session, ipcMain, screen, shell, nativeTheme } = require('electron');
+const { app, BrowserWindow, WebContentsView, session, ipcMain, screen, shell, nativeTheme, Menu, clipboard } = require('electron');
 
 const {
   applyCommandLineHardening,
@@ -54,8 +54,11 @@ function createContentWindow() {
     show: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#0b0d12' : '#ffffff',
     title: 'MiniBrowser',
-    titleBarStyle: IS_MAC ? 'hiddenInset' : 'default',
-    trafficLightPosition: IS_MAC ? { x: 14, y: 14 } : undefined,
+    // The content window is pure page: no frame, no title bar, no menu.
+    // Every control lives in the detached bar.
+    frame: false,
+    titleBarStyle: IS_MAC ? 'customButtonsOnHover' : 'default',
+    autoHideMenuBar: true,
     icon: appIcon(),
     webPreferences: {
       // The shell window itself renders nothing; all safety flags on anyway.
@@ -125,10 +128,9 @@ function createContentWindow() {
 
 function layoutPageView() {
   if (!contentWindow || !pageView) return;
+  // The page fills the window edge to edge. Nothing is reserved for chrome.
   const { width, height } = contentWindow.getContentBounds();
-  // macOS keeps a native title bar strip for the traffic lights.
-  const inset = IS_MAC && !contentWindow.isFullScreen() ? 0 : 0;
-  pageView.setBounds({ x: 0, y: inset, width, height: height - inset });
+  pageView.setBounds({ x: 0, y: 0, width, height });
 }
 
 function wireContentEvents() {
@@ -152,6 +154,12 @@ function wireContentEvents() {
     push();
   });
   wc.on('certificate-error', () => push());
+  wc.on('found-in-page', (_e, result) => {
+    sendToToolbar('page:find-result', {
+      active: result.activeMatchOrdinal,
+      total: result.matches
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -383,6 +391,82 @@ handle('win:toggle-maximize', () => {
   return contentWindow.isMaximized();
 });
 
+handle('win:fullscreen', () => {
+  if (!contentWindow) return false;
+  const next = !contentWindow.isFullScreen();
+  contentWindow.setFullScreen(next);
+  return next;
+});
+
+handle('win:center', () => {
+  contentWindow?.center();
+  repositionToolbar();
+  return true;
+});
+
+// Move the frameless content window by a delta, driven by the bar's move handle.
+handle('win:move-by', (dx, dy) => {
+  if (!contentWindow) return false;
+  const b = contentWindow.getBounds();
+  contentWindow.setBounds({ ...b, x: b.x + Math.round(dx || 0), y: b.y + Math.round(dy || 0) });
+  return true;
+});
+
+// Snap the content window to a half/quarter of the current display.
+handle('win:snap', (where) => {
+  if (!contentWindow) return false;
+  const { x, y, width, height } = screen.getDisplayMatching(contentWindow.getBounds()).workArea;
+  const half = Math.round(width / 2);
+  const layouts = {
+    left: { x, y, width: half, height },
+    right: { x: x + half, y, width: width - half, height },
+    full: { x, y, width, height }
+  };
+  const target = layouts[where];
+  if (!target) return false;
+  if (contentWindow.isMaximized()) contentWindow.unmaximize();
+  contentWindow.setBounds(target);
+  repositionToolbar();
+  return true;
+});
+
+handle('page:find', (query, forward) => {
+  const wc = pageView?.webContents;
+  if (!wc) return false;
+  const q = String(query || '').slice(0, 200);
+  if (!q) {
+    wc.stopFindInPage('clearSelection');
+    return false;
+  }
+  wc.findInPage(q, { forward: forward !== false, findNext: false });
+  return true;
+});
+
+handle('page:find-stop', () => {
+  pageView?.webContents.stopFindInPage('clearSelection');
+  return true;
+});
+
+handle('page:print', async () => {
+  pageView?.webContents.print({ silent: false, printBackground: true });
+  return true;
+});
+
+handle('page:copy-url', () => {
+  const url = pageView?.webContents.getURL() || '';
+  if (url && url !== 'about:blank') clipboard.writeText(url);
+  return url;
+});
+
+handle('page:edit', (action) => {
+  const wc = pageView?.webContents;
+  if (!wc) return false;
+  const allowed = ['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll'];
+  if (!allowed.includes(action)) return false;
+  wc[action]();
+  return true;
+});
+
 handle('shell:external', (url) => {
   const target = normalizeInput(String(url || ''));
   if (target && /^https?:/i.test(target)) shell.openExternal(target).catch(() => {});
@@ -407,6 +491,9 @@ app.on('second-instance', () => {
 });
 
 app.whenReady().then(async () => {
+  // No native application menu anywhere. The floating bar owns every menu.
+  Menu.setApplicationMenu(null);
+
   await trackerBlocker.load();
   createContentWindow();
   createToolbarWindow();

@@ -9,10 +9,36 @@
   </head>
   <body>
     <div class="bar" id="bar">
-      <div class="drag-strip" id="dragStrip" title="Drag to move">
-        <span class="grip"></span>
+      <!-- ROW 1 — menubar. Every menu in the app lives here. -->
+      <div class="menubar" id="menubar">
+        <div class="brand" title="MiniBrowser">
+          <svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6z" /></svg>
+        </div>
+
+        <button class="menu-title" data-menu="file">File</button>
+        <button class="menu-title" data-menu="edit">Edit</button>
+        <button class="menu-title" data-menu="view">View</button>
+        <button class="menu-title" data-menu="history">History</button>
+        <button class="menu-title" data-menu="privacy">Privacy</button>
+        <button class="menu-title" data-menu="window">Window</button>
+
+        <!-- draggable gap: moves the control bar itself -->
+        <div class="drag-gap" id="dragGap" title="Drag to move the control bar"></div>
+
+        <div class="win-buttons">
+          <button class="wb" id="minimize" title="Minimize page window" aria-label="Minimize">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14" /></svg>
+          </button>
+          <button class="wb" id="maximize" title="Maximize page window" aria-label="Maximize">
+            <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+          </button>
+          <button class="wb danger" id="close" title="Quit MiniBrowser" aria-label="Close">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
       </div>
 
+      <!-- ROW 2 — navigation + omnibox -->
       <div class="row primary">
         <div class="cluster nav">
           <button class="icon" id="back" title="Back (Alt+←)" aria-label="Back">
@@ -59,56 +85,28 @@
           </button>
         </form>
 
-        <div class="cluster right">
-          <button class="icon" id="menu" title="Menu" aria-label="Menu" aria-expanded="false">
-            <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-          </button>
-          <button class="icon danger" id="close" title="Close browser" aria-label="Close">
-            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
-          </button>
-        </div>
+        <!-- move handle for the frameless PAGE window -->
+        <button class="icon move-handle" id="moveWindow" title="Drag to move the page window">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5" />
+          </svg>
+        </button>
       </div>
 
       <div class="progress" id="progress"><span></span></div>
 
-      <div class="panel" id="panel" hidden>
-        <div class="panel-section">
-          <span class="panel-label">Zoom</span>
-          <div class="cluster">
-            <button class="icon small" id="zoomOut" title="Zoom out">
-              <svg viewBox="0 0 24 24"><path d="M5 12h14" /></svg>
-            </button>
-            <button class="pill" id="zoomReset" title="Reset zoom">100%</button>
-            <button class="icon small" id="zoomIn" title="Zoom in">
-              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="panel-section">
-          <span class="panel-label">Window</span>
-          <div class="cluster">
-            <button class="pill" id="minimize">Minimize</button>
-            <button class="pill" id="maximize">Maximize</button>
-            <button class="pill toggle on" id="pin" aria-pressed="true">Bar follows window</button>
-          </div>
-        </div>
-
-        <div class="panel-section">
-          <span class="panel-label">Privacy</span>
-          <div class="cluster wrap">
-            <button class="pill" id="grantCam">Allow camera here</button>
-            <button class="pill" id="grantMic">Allow mic here</button>
-            <button class="pill" id="grantLoc">Allow location here</button>
-            <button class="pill warn" id="clear">Clear all browsing data</button>
-          </div>
-        </div>
-
-        <div class="panel-section report" id="report">
-          <span class="panel-label">Blocked this session</span>
-          <ul id="reportList"><li class="muted">Nothing blocked yet.</li></ul>
-        </div>
+      <!-- find bar -->
+      <div class="findbar" id="findbar" hidden>
+        <svg viewBox="0 0 24 24" class="find-ico"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.3-4.3" /></svg>
+        <input id="findInput" type="text" placeholder="Find in page" aria-label="Find in page" spellcheck="false" />
+        <span class="find-count" id="findCount">0/0</span>
+        <button class="icon small" id="findPrev" title="Previous"><svg viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6" /></svg></button>
+        <button class="icon small" id="findNext" title="Next"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg></button>
+        <button class="icon small" id="findClose" title="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
       </div>
+
+      <!-- dropdown menus -->
+      <div class="dropdown" id="dropdown" hidden></div>
 
       <div class="toast" id="toast" hidden></div>
     </div>
