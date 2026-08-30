@@ -123,8 +123,11 @@ function createContentWindow() {
   contentWindow.on('resize', repositionToolbar);
   contentWindow.on('focus', () => {
     sendToToolbar('win:content-focus');
+    dismissToolbarMenus();
     raiseToolbar();
   });
+  contentWindow.on('move', dismissToolbarMenus);
+  contentWindow.on('blur', dismissToolbarMenus);
   contentWindow.on('show', () => toolbarWindow?.showInactive());
   contentWindow.on('hide', () => toolbarWindow?.hide());
   contentWindow.on('minimize', () => toolbarWindow?.hide());
@@ -176,6 +179,9 @@ function createDragBar() {
   });
 
   dragBarView.setBackgroundColor('#00000000');
+  dragBarView.webContents.on('before-input-event', (_e, input) => {
+    if (input.type === 'mouseDown') dismissToolbarMenus();
+  });
   hardenWebContents(dragBarView.webContents, { isPrivileged: true });
 
   // Added after pageView, so it paints on top of the page.
@@ -212,6 +218,11 @@ function wireContentEvents() {
   wc.on('dom-ready', () => {
     adblock.applyCosmetics(wc);
   });
+  // A press inside the page dismisses any open toolbar menu.
+  wc.on('before-input-event', (_e, input) => {
+    if (input.type === 'mouseDown' || input.type === 'keyDown') dismissToolbarMenus();
+  });
+  wc.on('focus', dismissToolbarMenus);
   wc.on('found-in-page', (_e, result) => {
     sendToToolbar('page:find-result', {
       active: result.activeMatchOrdinal,
@@ -596,6 +607,12 @@ function fromDragBar(event) {
     && event.sender === dragBarView.webContents;
 }
 
+// Any interaction with the page window must dismiss the bar's menus. The bar
+// is shown inactive and always-on-top, so it cannot rely on its own blur.
+function dismissToolbarMenus() {
+  sendToToolbar('bar:dismiss');
+}
+
 ipcMain.on('dragbar:expand', (event, value) => {
   if (!fromDragBar(event)) return;
   dragBarExpanded = Boolean(value);
@@ -603,7 +620,9 @@ ipcMain.on('dragbar:expand', (event, value) => {
 });
 
 ipcMain.on('dragbar:minimize', (event) => {
-  if (fromDragBar(event)) contentWindow?.minimize();
+  if (!fromDragBar(event)) return;
+  dismissToolbarMenus();
+  contentWindow?.minimize();
 });
 
 ipcMain.on('dragbar:toggle-maximize', (event) => {

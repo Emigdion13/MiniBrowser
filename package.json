@@ -14,11 +14,12 @@
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "dist:all": "electron-builder -mwl",
-    "test": "node test/logic.test.js && node test/adblock.test.js"
+    "test": "node test/logic.test.js && node test/adblock.test.js && node test/menu.test.js"
   },
   "devDependencies": {
     "electron": "^32.2.7",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "jsdom": "^30.0.1"
   },
   "build": {
     "appId": "dev.emigdion.minibrowser",

@@ -19,7 +19,7 @@
     lastBlocked: null
   };
 
-  const subs = { state: new Set(), loading: new Set(), blocked: new Set(), find: new Set(), focus: new Set() };
+  const subs = { state: new Set(), loading: new Set(), blocked: new Set(), find: new Set(), focus: new Set(), dismiss: new Set() };
   const emit = (k, v) => subs[k].forEach((f) => f(v));
   const push = () => emit('state', { ...state });
 
@@ -135,6 +135,7 @@
     onBlocked: (f) => (subs.blocked.add(f), () => subs.blocked.delete(f)),
     onFindResult: (f) => (subs.find.add(f), () => subs.find.delete(f)),
     onContentFocus: (f) => (subs.focus.add(f), () => subs.focus.delete(f)),
+    onDismiss: (f) => (subs.dismiss.add(f), () => subs.dismiss.delete(f)),
     platform: 'linux'
   };
 

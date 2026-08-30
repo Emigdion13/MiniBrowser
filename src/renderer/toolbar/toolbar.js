@@ -61,7 +61,14 @@ async function fitHeight() {
   let h = H_BASE;
   if (findOpen) h += H_FIND;
   if (openMenu) h = Math.max(h, H_BASE + dropdown.offsetHeight + 12);
-  await window.mini.resizeBar(h);
+
+  selfResizing += 1;
+  try {
+    await window.mini.resizeBar(h);
+  } finally {
+    // Release only after the resize event has had a chance to fire.
+    setTimeout(() => { selfResizing = Math.max(0, selfResizing - 1); }, 250);
+  }
 }
 
 // --- menu definitions ------------------------------------------------------
@@ -377,7 +384,13 @@ async function showMenu(name) {
   await fitHeight();
 }
 
-window.addEventListener('resize', () => { if (openMenu) closeMenu(); });
+// Resizing the bar to fit a menu fires 'resize' on ourselves. Only treat a
+// resize as "user grabbed the window edge" once our own layout has settled.
+let selfResizing = 0;
+window.addEventListener('resize', () => {
+  if (selfResizing > 0) return;
+  if (openMenu) closeMenu();
+});
 
 function closeMenu() {
   if (!openMenu) return;
@@ -401,12 +414,22 @@ for (const title of menubar.querySelectorAll('.menu-title')) {
 
 // Close on any press outside the dropdown. pointerdown (not click) so a
 // press-and-drag, or a press that steals focus, still dismisses the menu.
-document.addEventListener('pointerdown', (event) => {
+function outsidePress(event) {
   if (!openMenu) return;
   if (dropdown.contains(event.target)) return;
   if (event.target.closest?.('.menu-title')) return; // the title handler toggles
   closeMenu();
-}, true);
+}
+document.addEventListener('pointerdown', outsidePress, true);
+// Safety net: some environments deliver only mousedown for certain regions.
+document.addEventListener('mousedown', outsidePress, true);
+
+// Presses on a -webkit-app-region: drag area are consumed by the OS window
+// drag and never reach the document, so hook those elements directly.
+for (const region of document.querySelectorAll('.drag-gap, .brand')) {
+  region.addEventListener('pointerdown', () => closeMenu());
+  region.addEventListener('mousedown', () => closeMenu());
+}
 
 // The bar is its own OS window: clicking the page window or another app sends
 // us no event at all, so dismiss on focus loss too.
@@ -416,6 +439,8 @@ document.addEventListener('visibilitychange', () => {
 });
 // The main process tells us when the page window takes focus.
 window.mini.onContentFocus?.(() => closeMenu());
+// Main process tells us to dismiss (page clicked, window moved, etc.).
+window.mini.onDismiss?.(() => closeMenu());
 
 // --- actions ---------------------------------------------------------------
 

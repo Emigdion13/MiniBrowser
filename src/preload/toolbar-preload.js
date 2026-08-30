@@ -15,7 +15,8 @@ const listeners = {
   'nav:loading': new Set(),
   'nav:blocked': new Set(),
   'page:find-result': new Set(),
-  'win:content-focus': new Set()
+  'win:content-focus': new Set(),
+  'bar:dismiss': new Set()
 };
 
 for (const channel of Object.keys(listeners)) {
@@ -86,6 +87,7 @@ contextBridge.exposeInMainWorld('mini', {
   onBlocked: subscribe('nav:blocked'),
   onFindResult: subscribe('page:find-result'),
   onContentFocus: subscribe('win:content-focus'),
+  onDismiss: subscribe('bar:dismiss'),
 
   platform: process.platform
 });

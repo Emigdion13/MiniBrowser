@@ -161,9 +161,10 @@ npm start
 npm test
 ```
 
-**38 checks**, no Electron required:
+**55 checks**, no Electron required:
 
 - `logic.test.js` — URL normalisation, including rejection of `javascript:` / `file:` / `chrome:`
+- `menu.test.js` — drives the real toolbar through jsdom: every menu opens and closes, dismissal via outside press / drag region / Escape / page focus, and regression coverage for the self-resize feedback loop
 - `adblock.test.js` — every filter syntax form, `$type` / `$third-party` / `$domain` options, exception rules, cosmetic matching and inheritance, parser robustness against malformed input, verification that real ad servers are blocked while Wikipedia/GitHub/jsDelivr are not, and a performance assertion on 20k rules
 
 ## Building installers
@@ -201,7 +202,7 @@ src/
     toolbar-preload.js  the entire (tiny) privileged API surface
   renderer/toolbar/     the floating bar UI
 preview/                browser-only mock for previewing the UI
-test/                   38 pure-logic tests
+test/                   55 tests (logic, adblock, toolbar menus)
 ```
 
 ## License
